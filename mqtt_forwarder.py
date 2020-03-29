@@ -49,21 +49,12 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(args.topic)
 
 def on_message(client, userdata, msg):
-    sensorName = msg.topic.split('/') [-1]
-    if sensorName in hashMap.keys():
-        tstamp = int(time.time())
-        mqttPath = urllib.parse.urljoin(args.destination + '/', hashMap[sensorName])
-        debug("Received message from {0} with payload {1} to be published to {2}".format(msg.topic, str(msg.payload), mqttPath))
-        nodeData = msg.payload
-        newObject = json.loads(nodeData.decode('utf-8'))
-        newObject['time'] = tstamp
-        nodeData = json.dumps(newObject)
-        if not args.dryRun:
-          client.publish(mqttPath, nodeData)
-        else:
-          debug("Dry run")
+    mqttPath = args.destination
+    debug("Received message from {0} with payload {1} to be published to {2}".format(msg.topic, str(msg.payload), mqttPath))
+    if not args.dryRun:
+        client.publish(mqttPath, msg.payload)
     else:
-        debug("Received message from {0} with payload {1}. Hash not found in hashMap".format(msg.topic, str(msg.payload)))
+        debug("Dry run")
 
 
 
@@ -71,9 +62,6 @@ parser = argparse.ArgumentParser(description='Send MQTT payload received from a 
   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-m', '--mqtt-host', dest='host', action="store", default="127.0.0.1",
                    help='Specify the MQTT host to connect to.')
-parser.add_argument('-a', '--hash-map', dest='hashMap', action="store",
-                   help='Specify the MQTT host to connect to.',
-                   **environ_or_required('MQTT_FORWARDER_HASHMAP'))
 parser.add_argument('-n', '--dry-run', dest='dryRun', action="store_true", default=False,
                    help='No data will be sent to the MQTT broker.')
 parser.add_argument('-d', '--destination', dest='destination', action="store", default="sensor/raw",
@@ -90,7 +78,6 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 args = parser.parse_args()
 verbose = args.verbose
-hashMap = json.loads(args.hashMap)
 
 client = mqtt.Client()
 client.on_connect = on_connect
