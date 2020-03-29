@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  mqtt_forwarder:
+    build: .
+    image: mqtt_forwarder-python3:latest
+    env_file:
+        .env
+    restart: always
+    command: "-m $HOST -t $TOPIC -d $DST -v"
